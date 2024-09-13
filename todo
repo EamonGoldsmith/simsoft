@@ -1,0 +1,29 @@
+goal for this project:
+
+- 3d view of model in world
+- option to generate from seed
+- rigid body physics simulation
+- soft body physics simulation
+- vector field forces simulation
+- bouancy simulation
+
+
+how it will work:
+
+Three menus for world, objects and assemblies.
+world is generated from seed, can be edited with sliders, or model imported
+ocean is also available with sliders for tide strength and wave height
+
+objects and assemblies are arranged in a file heirarchy, objects can be either soft or rigid
+assemblies are composed of multiple objects. objects can be given mass
+
+objects are connected by attachments which can be fixed, rotational, linear, swing or cord.
+Each of these attachments can be edited
+
+vector fields can be used for tide, wind, thrust and drag.
+feilds are programmed with functions or presets (wind, water, convection).
+
+actuators are special types of connections that can apply a force in the given range of motion.
+
+sensors can be placed on objects that take a picture, get field magnitude (wind speed),
+global direction or distance to an object.

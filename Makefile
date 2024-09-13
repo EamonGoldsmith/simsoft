@@ -1,31 +1,32 @@
 # Compiler and flags
 CXX = clang++
-CXXFLAGS = -Wall -O2 -I/usr/local/include
-LIBS = -L/usr/local/lib -lGL -lGLU -lglut
-APP = freeglut_window
+CXXFLAGS += -Wall -O2
+LDFLAGS += -lGLEW -lGL -lglut
+TARGET = freeglut_window
 
-SRC = *
-OBJS = $($(SRC):T)
+OBJ_DIR = obj
+SRC_DIR = src
 
-all: $(OBJS)
-	echo $(ALLSRC)
+# Source and object files
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-# create obj dir
-#$(OBJ_DIR):
-	#mkdir -p $(OBJ_DIR)
+# Default target
+all: $(TARGET)
 
-# link
-#$(TARGET): $(OBJS)
-	#$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+# Link the executable
+$(TARGET): $(OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
-# compile
-#$(OBJ_DIR)/$(.PREFIX).o: $(SRC_DIR)/$(.PREFIX).cpp
-	#$(CXX) $(CXXFLAGS) -c $(OBJ_DIR)/$(.TARGET) -o $(.PREFIX)
+# Compile source files into object files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(OBJ_DIR) # Create obj directory if it doesn't exist
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-#.PHONY: clean run
+.PHONY: clean run
 
-#clean:
-	#rm -f $(OBJS) $(TARGET)
+clean:
+	rm -f $(OBJS) $(TARGET)
 
-#run: $(TARGET)
-	#./$(TARGET)
+run: $(TARGET)
+	./$(TARGET)
