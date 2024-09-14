@@ -7,47 +7,62 @@
 #include <chrono>
 
 const char* vertex_shader_source = R"(
-	#version 130
-	in vec2 aPos;
-	void main() {
-		gl_Position = vec4(aPos, 0.0, 1.0);
+	#version 330 core
+	layout (location=0) in vec3 aPos;
+
+	out vec4 vertexColor;
+
+	void main()
+	{
+		gl_Position = vec4(aPos, 1.0);
+		vertexColor = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 )";
 
 const char* fragment_shader_source = R"(
-	#version 130
+	#version 330 core
 	out vec4 FragColor;
-	void main() {
-		FragColor = vec4(1.0, 0.647, 0.0, 1.0); // Orange color
+	
+	in vec4 vertexColor;
+
+	void main()
+	{
+		FragColor = vertexColor;
 	}
 )";
 
 GLuint compile_shader(GLenum shader_type, const char* source)
 {
+	// create a compile shader
 	GLuint shader = glCreateShader(shader_type);
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
 
+	// check for error
 	GLint status;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 	if (!status) {
 		char log[512];
 		glGetShaderInfoLog(shader, 512, nullptr, log);
-		std::cerr << "error: shader compilation failed\n" << log << std::endl;
+		std::cerr << "error: shader compilation failed:\n" << log << std::endl;
 	}
+
 	return shader;
 }
 
-GLuint create_shader_program()
+GLuint create_shader_program(const char *v_source, const char *f_source)
 {
-	GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, vertex_shader_source);
-	GLuint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
+	// compile shaders
+	GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, v_source);
+	GLuint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, f_source);
 
+	// link
 	GLuint shader_program = glCreateProgram();
 	glAttachShader(shader_program, vertex_shader);
 	glAttachShader(shader_program, fragment_shader);
 	glLinkProgram(shader_program);
 
+	// check for error
 	GLint status;
 	glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
 	if (!status) {
@@ -112,18 +127,14 @@ int main()
 		return -1;
 	}
 
+	GLuint shader_prog = create_shader_program(vertex_shader_source, fragment_shader_source);
+
 	// triangle mesh
 	float vertices[] = {
-		0.0f,  0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
 		-0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f
+		0.5f, -0.5f, 0.0f,
+		0.0f, 0.5f, 0.0f
 	};
-
-	unsigned int indices[] = {
-		0, 1, 3,
-		1, 2, 3
-	}
 
 	// create vertex buffers
 	GLuint VAO, VBO;
@@ -131,46 +142,43 @@ int main()
 	glGenBuffers(1, &VBO);
 
 	glBindVertexArray(VAO);
-
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	GLuint shaderProgram = create_shader_program();
-
 	// main loop
-	bool runing = true;
-	while (runing)
+	bool running = true;
+	while (running)
 	{
 		XEvent event;
 		while (XPending(display)) {
 			XNextEvent(display, &event);
 
 			if (event.type == KeyPress) {
-				XCloseDisplay(display);
-				runing = false;
+				KeySym key = XLookupKeysym(&event.xkey, 0);
+
+				// quit on 'q'
+				if (key == 113) {
+					running = false;
+				}
 			}
 		}
 
-		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(shaderProgram);
+		glUseProgram(shader_prog);
+
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
-		glBindVertexArray(0);
 
 		glXSwapBuffers(display, win);
 	}
 
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(shaderProgram);
+	glDeleteProgram(shader_prog);
 
 	glXDestroyContext(display, glContext);
 	XDestroyWindow(display, win);
