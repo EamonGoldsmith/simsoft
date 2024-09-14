@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX = clang++
 CXXFLAGS += -Wall -O2
-LDFLAGS += -lGLEW -lGL -lglut
+LDFLAGS += -lGLEW -lGL -lX11 -lXext
 TARGET = freeglut_window
 
 OBJ_DIR = obj

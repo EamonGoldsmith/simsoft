@@ -15,7 +15,7 @@ world is generated from seed, can be edited with sliders, or model imported
 ocean is also available with sliders for tide strength and wave height
 
 objects and assemblies are arranged in a file heirarchy, objects can be either soft or rigid
-assemblies are composed of multiple objects. objects can be given mass
+assemblies are composed of multiple objects. objects can be given mass and coefficient of friction
 
 objects are connected by attachments which can be fixed, rotational, linear, swing or cord.
 Each of these attachments can be edited
