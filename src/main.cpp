@@ -5,76 +5,15 @@
 
 #include <iostream>
 #include <chrono>
+#include <thread>
 
-const char* vertex_shader_source = R"(
-	#version 330 core
-	layout (location=0) in vec3 aPos;
+const std::chrono::milliseconds update_duration(2);
 
-	out vec4 vertexColor;
-
-	void main()
-	{
-		gl_Position = vec4(aPos, 1.0);
-		vertexColor = vec4(1.0, 0.0, 0.0, 1.0);
-	}
-)";
-
-const char* fragment_shader_source = R"(
-	#version 330 core
-	out vec4 FragColor;
-	
-	in vec4 vertexColor;
-
-	void main()
-	{
-		FragColor = vertexColor;
-	}
-)";
-
-GLuint compile_shader(GLenum shader_type, const char* source)
+void update(
+	std::chrono::duration<double> delta,
+	std::chrono::duration<double> lag
+	)
 {
-	// create a compile shader
-	GLuint shader = glCreateShader(shader_type);
-	glShaderSource(shader, 1, &source, nullptr);
-	glCompileShader(shader);
-
-	// check for error
-	GLint status;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-	if (!status) {
-		char log[512];
-		glGetShaderInfoLog(shader, 512, nullptr, log);
-		std::cerr << "error: shader compilation failed:\n" << log << std::endl;
-	}
-
-	return shader;
-}
-
-GLuint create_shader_program(const char *v_source, const char *f_source)
-{
-	// compile shaders
-	GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, v_source);
-	GLuint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, f_source);
-
-	// link
-	GLuint shader_program = glCreateProgram();
-	glAttachShader(shader_program, vertex_shader);
-	glAttachShader(shader_program, fragment_shader);
-	glLinkProgram(shader_program);
-
-	// check for error
-	GLint status;
-	glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
-	if (!status) {
-		char log[512];
-		glGetProgramInfoLog(shader_program, 512, nullptr, log);
-		std::cerr << "error: shader linking failed\n" << log << std::endl;
-	}
-
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
-
-	return shader_program;
 }
 
 int main() 
@@ -123,18 +62,19 @@ int main()
 	// initialise glew
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK) {
-		std::cerr << "ERROR: Failed to initialize GLEW" << std::endl;
+		std::cerr << "error: Failed to initialize GLEW" << std::endl;
 		return -1;
 	}
 
-	GLuint shader_prog = create_shader_program(vertex_shader_source, fragment_shader_source);
-
 	// triangle mesh
 	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.0f, 0.5f, 0.0f
+		-0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,
+		0.0f, 0.5f, 0.0f,    0.0f, 0.0f, 1.0f
 	};
+
+	// create a new shader
+	Shader ourShader("shaders/shader.vs", "shaders/shader.fs");
 
 	// create vertex buffers
 	GLuint VAO, VBO;
@@ -144,13 +84,28 @@ int main()
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// create timers
+	auto last = std::chrono::steady_clock::now();
+	auto current = last;
+	std::chrono::duration<double> delta, lag;
 
 	// main loop
 	bool running = true;
 	while (running)
 	{
+		// frame timing
+		current = std::chrono::steady_clock::now();
+		delta = current - last;
+		last = current;
+		lag += delta;
+
 		XEvent event;
 		while (XPending(display)) {
 			XNextEvent(display, &event);
@@ -165,10 +120,17 @@ int main()
 			}
 		}
 
+		// fix timestep
+		while (lag >= update_duration) {
+			update(delta, lag);
+			lag -= update_duration;
+		}
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(shader_prog);
+		ourShader.use();
+		ourShader.setFloat("pos_offset", 0.5f);
 
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -178,7 +140,6 @@ int main()
 
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(shader_prog);
 
 	glXDestroyContext(display, glContext);
 	XDestroyWindow(display, win);
@@ -186,3 +147,4 @@ int main()
 
 	return 0;
 }
+

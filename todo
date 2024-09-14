@@ -1,3 +1,14 @@
+steps:
+DONE - Render a triangle
+IN PROGRESS - Render a mesh from a file
+- Render a textured and wireframe mesh
+- Render a textured mesh with lighting
+- Load a scene (group of meshes) from a file
+- Write a scene to a file
+- add camera movement
+- add handles to move meshes
+
+
 goal for this project:
 
 - 3d view of model in world

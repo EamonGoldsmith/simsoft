@@ -26,7 +26,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 .PHONY: clean run
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm $(TARGET)
+	rm $(OBJ_DIR)/*
 
 run: $(TARGET)
 	./$(TARGET)
